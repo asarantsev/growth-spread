@@ -33,36 +33,23 @@ def analysis(data, label):
     L1abs = sum(abs(acf(abs(data), nlags = 5)[1:]))
     print('L1 norm absolute residuals ', round(L1abs, 3), label, '\n')
 
-df = pd.read_excel("rates-earn-vol.xlsx", sheet_name = 'price')
+df = pd.read_excel("rates-earn-new.xlsx", sheet_name = 'data')
 vol = df["Volatility"].values[1:]
 N = len(vol)
 print('Data size = ', N)
 
 S1 = df["BAA"].values - df["AAA"].values
 S2 = df['BAA'].values - df['Long'].values
-DF1REG = pd.DataFrame({'const' : 1/vol, 'vol' : 1, 'S1' : S1[:-1]/vol, 'S2' : S2[:-1]/vol})
-DF2REG = pd.DataFrame({'const' : 1, 'S1' : S1[:-1], 'S2' : S2[:-1]})
-DF0REG = pd.DataFrame({'const' : 1/vol, 'vol' : vol})
+DF0REG = pd.DataFrame({'const' : 1/vol, 'vol' : 1})
+DF1REG = pd.DataFrame({'const' : 1, 'S1' : S1[:-1], 'S2' : S2[:-1]})
+DF2REG = pd.DataFrame({'const' : 1/vol, 'S1' : S1[:-1]/vol, 'S2' : S2[:-1]/vol})
+DF3REG = pd.DataFrame({'const' : 1/vol, 'vol' : 1, 'S1' : S1[:-1]/vol, 'S2' : S2[:-1]/vol})
 
 price = df['Price'].values
 dividend = df['Dividends'].values
-dfEarnings = pd.read_excel('rates-earn-vol.xlsx', sheet_name = 'earnings')
-earnings = dfEarnings['Earnings'].values[9:]
-cpi = dfEarnings['CPI'].values[9:]
+earnings = df['Earnings'].values
+cpi = df['CPI'].values
 inflation = np.diff(np.log(cpi))
-nominalPrice = np.diff(np.log(price))
-realPrice = nominalPrice - inflation
-nominalTotal = np.array([np.log(price[k+1] + dividend[k+1]) - np.log(price[k]) for k in range(N)])
-realTotal = nominalTotal - inflation
-lvol = np.log(vol)
-RegVol = stats.linregress(lvol[:-1], lvol[1:])
-betaVol = RegVol.slope
-alphaVol = RegVol.intercept
-print('Slope = ', round(betaVol, 3))
-print('Intercept = ', round(alphaVol, 3))
-residVol = np.array([lvol[k+1] - betaVol * lvol[k] - alphaVol for k in range(N-1)])
-plots(residVol, 'AR(1) Volatility Residuals')
-analysis(residVol, 'AR(1) Volatility Residuals')
 nearngr = np.diff(np.log(earnings))
 rearngr = nearngr - inflation
 earnyield = earnings/price
@@ -70,7 +57,7 @@ ngrowth = nearngr/vol
 nmeangrowth = np.mean(ngrowth)
 rgrowth = rearngr/vol
 rmeangrowth = np.mean(ngrowth)
-DFs = {'vol': DF0REG, 'spreads' : DF1REG, 'vol-spreads' : DF2REG}
+DFs = {'vol-const': DF0REG, 'spreads' : DF1REG, 'vol-spreads' : DF2REG, 'vol-spreads-const' : DF3REG}
 for item in DFs:
     RegNGrowth = OLS(ngrowth, DFs[item]).fit()
     print('Nominal Earnings Growth', item)
